@@ -1,7 +1,7 @@
 import { tacticColor } from "../lib/tacticColors";
 import Tag from "./Tag";
 
-export default function DetailPanel({ entityType, entity, data, onClose, onNavigate }) {
+export default function DetailPanel({ entityType, entity, data, onClose, onNavigate, onGenerateLayer }) {
   if (!entity) {
     return (
       <div className="h-full flex items-center justify-center text-center px-6">
@@ -35,8 +35,12 @@ export default function DetailPanel({ entityType, entity, data, onClose, onNavig
         {entityType === "technique" && (
           <TechniqueDetail entity={entity} data={data} onNavigate={onNavigate} />
         )}
-        {entityType === "group" && <GroupDetail entity={entity} data={data} onNavigate={onNavigate} />}
-        {entityType === "software" && <SoftwareDetail entity={entity} data={data} onNavigate={onNavigate} />}
+        {entityType === "group" && (
+          <GroupDetail entity={entity} data={data} onNavigate={onNavigate} onGenerateLayer={onGenerateLayer} />
+        )}
+        {entityType === "software" && (
+          <SoftwareDetail entity={entity} data={data} onNavigate={onNavigate} onGenerateLayer={onGenerateLayer} />
+        )}
         {entityType === "mitigation" && <MitigationDetail entity={entity} data={data} onNavigate={onNavigate} />}
       </div>
     </div>
@@ -55,7 +59,7 @@ function Section({ title, children, count }) {
   );
 }
 
-function TechniqueDetail({ entity: t, data, onNavigate }) {
+export function TechniqueDetail({ entity: t, data, onNavigate }) {
   const parent = t.parent_id ? data.techniqueById.get(t.parent_id) : null;
   const subs = t.subtechniques.map((id) => data.techniqueById.get(id)).filter(Boolean);
 
@@ -230,7 +234,7 @@ function TechniqueDetail({ entity: t, data, onNavigate }) {
   );
 }
 
-function GroupDetail({ entity: g, data, onNavigate }) {
+function GroupDetail({ entity: g, data, onNavigate, onGenerateLayer }) {
   const uses = data.groupTechniques.get(g.id) || [];
   return (
     <div>
@@ -240,6 +244,17 @@ function GroupDetail({ entity: g, data, onNavigate }) {
         <p className="text-xs text-ink-500 mt-2 font-mono">alias: {g.aliases.join(", ")}</p>
       )}
       <p className="text-sm text-ink-300 leading-relaxed mt-4 whitespace-pre-line">{g.description}</p>
+
+      {uses.length > 0 && onGenerateLayer && (
+        <button
+          onClick={() => onGenerateLayer("group", g)}
+          className="mt-4 w-full text-left border border-signal-cyan/40 hover:border-signal-cyan rounded-lg px-3 py-2.5 bg-signal-cyan/10 text-xs text-ink-100 transition-colors"
+        >
+          <span className="font-mono text-signal-cyan">◈ Generar capa de amenaza</span>
+          <br />
+          Crea una capa en "Modelado de amenazas" con las {uses.length} técnicas de {g.name} ya anotadas.
+        </button>
+      )}
 
       {uses.length > 0 && (
         <Section title="Técnicas observadas" count={uses.length}>
@@ -267,7 +282,7 @@ function GroupDetail({ entity: g, data, onNavigate }) {
   );
 }
 
-function SoftwareDetail({ entity: s, data, onNavigate }) {
+function SoftwareDetail({ entity: s, data, onNavigate, onGenerateLayer }) {
   const uses = data.softwareTechniques.get(s.id) || [];
   return (
     <div>
@@ -281,6 +296,17 @@ function SoftwareDetail({ entity: s, data, onNavigate }) {
         <p className="text-xs text-ink-500 mt-1 font-mono">alias: {s.aliases.join(", ")}</p>
       )}
       <p className="text-sm text-ink-300 leading-relaxed mt-4 whitespace-pre-line">{s.description}</p>
+
+      {uses.length > 0 && onGenerateLayer && (
+        <button
+          onClick={() => onGenerateLayer("software", s)}
+          className="mt-4 w-full text-left border border-signal-cyan/40 hover:border-signal-cyan rounded-lg px-3 py-2.5 bg-signal-cyan/10 text-xs text-ink-100 transition-colors"
+        >
+          <span className="font-mono text-signal-cyan">◈ Generar capa de amenaza</span>
+          <br />
+          Crea una capa en "Modelado de amenazas" con las {uses.length} técnicas de {s.name} ya anotadas.
+        </button>
+      )}
 
       {uses.length > 0 && (
         <Section title="Técnicas implementadas" count={uses.length}>

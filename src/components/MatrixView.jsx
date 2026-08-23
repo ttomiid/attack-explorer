@@ -10,7 +10,7 @@ export default function MatrixView({ tactics, techniquesByTactic, onSelect, sele
           return (
             <div key={tac.shortname} className="w-56 shrink-0 flex flex-col">
               <div
-                className="rounded-t-md px-3 py-2 border-t-2 sticky top-[73px] bg-ink-950 z-10"
+                className="rounded-t-md px-3 py-2 border-t-2 bg-ink-950"
                 style={{ borderColor: color }}
               >
                 <p className="font-sans font-medium text-xs text-ink-100 leading-tight">{tac.name}</p>
