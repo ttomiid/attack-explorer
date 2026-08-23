@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 
-const DATA_URL = "/data/attack-data.json";
+const DATA_URL = `${import.meta.env.BASE_URL}data/attack-data.json`;
 
 /**
  * Carga el dataset procesado de MITRE ATT&CK Enterprise y construye
