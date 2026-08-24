@@ -1,5 +1,7 @@
 import { getAnnotation } from "../../lib/layerModel";
 import { scoreToColor } from "../../lib/colorScale";
+import { useHorizontalScroll } from "../../lib/useHorizontalScroll";
+import MatrixScrollArrows from "../MatrixScrollArrows";
 
 export default function AnnotatedMatrix({
   tactics,
@@ -10,10 +12,18 @@ export default function AnnotatedMatrix({
   onToggleSelect,
   onOpenEditor,
 }) {
+  const { ref, canScrollLeft, canScrollRight, scrollByPage } = useHorizontalScroll();
   return (
-    <div className="overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-2 min-w-max">
-        {tactics.map((tac) => {
+    <div className="relative">
+      <MatrixScrollArrows
+        canScrollLeft={canScrollLeft}
+        canScrollRight={canScrollRight}
+        onScrollLeft={() => scrollByPage(-1)}
+        onScrollRight={() => scrollByPage(1)}
+      />
+      <div ref={ref} className="overflow-x-auto pb-4 -mx-1 px-1">
+        <div className="flex gap-2 min-w-max">
+          {tactics.map((tac) => {
           const items = techniquesByTactic.get(tac.shortname) || [];
           return (
             <div key={tac.shortname} className="w-56 shrink-0 flex flex-col">
@@ -37,7 +47,7 @@ export default function AnnotatedMatrix({
                       onClick={() =>
                         selectionMode ? onToggleSelect(t.id) : onOpenEditor(t.id)
                       }
-                      className={`relative text-left mx-1.5 px-2.5 py-2 rounded-[4px] border text-xs transition-colors ${
+                      className={`relative text-left mx-1.5 px-2.5 py-2 rounded-[4px] border text-xs transition-colors cursor-pointer ${
                         isSelected ? "border-signal-cyan" : "border-transparent hover:border-ink-700"
                       } ${!a.enabled ? "opacity-35" : ""}`}
                       style={{
@@ -84,7 +94,8 @@ export default function AnnotatedMatrix({
               </div>
             </div>
           );
-        })}
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,19 @@
 import { tacticColor } from "../lib/tacticColors";
+import { useHorizontalScroll } from "../lib/useHorizontalScroll";
+import MatrixScrollArrows from "./MatrixScrollArrows";
 
 export default function MatrixView({ tactics, techniquesByTactic, onSelect, selectedId }) {
+  const { ref, canScrollLeft, canScrollRight, scrollByPage } = useHorizontalScroll();
   return (
-    <div className="overflow-x-auto pb-4 -mx-1 px-1">
-      <div className="flex gap-2 min-w-max">
+    <div className="relative">
+      <MatrixScrollArrows
+        canScrollLeft={canScrollLeft}
+        canScrollRight={canScrollRight}
+        onScrollLeft={() => scrollByPage(-1)}
+        onScrollRight={() => scrollByPage(1)}
+      />
+      <div ref={ref} className="overflow-x-auto pb-4 -mx-1 px-1">
+        <div className="flex gap-2 min-w-max">
         {tactics.map((tac, i) => {
           const items = techniquesByTactic.get(tac.shortname) || [];
           const color = tacticColor(i);
@@ -28,7 +38,7 @@ export default function MatrixView({ tactics, techniquesByTactic, onSelect, sele
                     <button
                       key={t.id}
                       onClick={() => onSelect(t)}
-                      className={`text-left mx-1.5 px-2.5 py-2 rounded-[4px] border text-xs transition-colors ${
+                      className={`text-left mx-1.5 px-2.5 py-2 rounded-[4px] border text-xs transition-colors cursor-pointer ${
                         active
                           ? "bg-ink-800 border-ink-500"
                           : "bg-ink-850 border-transparent hover:border-ink-700 hover:bg-ink-800/70"
@@ -49,6 +59,7 @@ export default function MatrixView({ tactics, techniquesByTactic, onSelect, sele
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

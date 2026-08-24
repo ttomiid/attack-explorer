@@ -76,3 +76,14 @@ export function clearAnnotation(layer, techniqueId) {
 export function annotatedCount(layer) {
   return Object.keys(layer.annotations).length;
 }
+
+/** Una técnica se considera "presente" en la capa si está anotada y no fue deshabilitada. */
+export function isMember(layer, techniqueId) {
+  const a = layer.annotations[techniqueId];
+  return Boolean(a) && a.enabled !== false;
+}
+
+/** IDs de todas las técnicas presentes (anotadas y habilitadas) en la capa. */
+export function getMemberIds(layer) {
+  return Object.keys(layer.annotations).filter((id) => layer.annotations[id].enabled !== false);
+}

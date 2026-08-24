@@ -21,6 +21,8 @@ Además del explorador, el proyecto incluye un módulo de **modelado de amenazas
 - **Selección múltiple**: activá "selección múltiple", elegí varias técnicas en la matriz y aplicales una anotación en lote (por ejemplo, marcar en rojo todas las técnicas sin detección).
 - **Import/export de layer JSON 100% compatible con el Navigator oficial** (schema v4.5): podés exportar una capa hecha acá y abrirla en `mitre-attack.github.io/attack-navigator`, o importar una capa real descargada de la página de un grupo en `attack.mitre.org` (ej. el layer de TTPs de APT29) y verla en esta app.
 - **Generación automática de capas**: desde el detalle de cualquier Grupo o Software en el explorador, el botón "Generar capa de amenaza" crea una capa nueva con todas sus técnicas conocidas ya anotadas — el punto de partida típico de un ejercicio de threat-informed defense ("¿qué TTPs tengo que cubrir si me preocupa este actor?").
+- **Comparar capas (superposición)**: elegí 2 o más capas y combiná su score por técnica (suma, promedio, máximo, mínimo o cantidad de capas donde aparece) en una vista previa sobre la matriz — para ver de un vistazo qué técnicas se repiten entre, por ejemplo, tu capa de detecciones y la de un grupo, o entre varios grupos candidatos. El resultado se puede guardar como una capa nueva.
+- **Atribución ("¿qué grupo puede ser?")**: tomando las técnicas anotadas y habilitadas de la capa activa como "TTPs observadas", rankea todos los grupos del dataset por similitud de coseno sobre vectores ponderados por IDF (las técnicas raras — usadas por pocos grupos — pesan más que las genéricas como "PowerShell"). Cada resultado muestra el score, las técnicas que coinciden y las que no, con un botón directo para saltar a "Comparar capas" con tu capa vs. la del grupo candidato preseleccionadas. **Importante**: es un score estadístico de solapamiento, no una atribución forense — la UI lo aclara explícitamente.
 - Las capas se guardan en `localStorage` del navegador (no hay backend); `src/lib/layerStore.js` es el único punto a tocar si más adelante querés persistirlas en un servidor propio.
 
 Archivos relevantes:
@@ -31,16 +33,20 @@ src/lib/
   layerStore.js        # persistencia en localStorage
   colorScale.js         # interpolación de color para el modo gradiente
   navigatorIO.js          # export/import compatible con el layer JSON del Navigator
-  layerGenerators.js       # generación de capas desde un Grupo/Software (o combinando varios)
+  layerGenerators.js       # generación de capas desde un Grupo/Software
+  layerCombine.js           # combinación de N capas (suma/promedio/máx/mín/cantidad)
+  attribution.js             # ranking de grupos por similitud de TTPs (coseno + IDF)
 src/components/threatModel/
-  ThreatModelView.jsx   # contenedor: capa activa, selección, búsqueda
+  ThreatModelView.jsx   # contenedor: 3 sub-vistas (Anotar / Comparar / Atribución)
   LayerToolbar.jsx        # gestión de capas (crear/renombrar/duplicar/borrar/import/export)
   AnnotatedMatrix.jsx      # matriz coloreada por capa (el "heatmap")
-  AnnotationEditor.jsx      # panel de edición individual/en lote + config de gradiente
-  GradientBar.jsx            # leyenda del gradiente
+  AnnotationEditor.jsx      # panel de edición individual/en lote + ficha completa de la técnica
+  LayerComparePanel.jsx      # selección de capas a superponer + preview combinado
+  AttributionPanel.jsx        # ranking de grupos candidatos + salto a comparación
+  GradientBar.jsx               # leyenda del gradiente
 ```
 
-Ideas para extender: exportar la matriz como SVG/PNG (el Navigator lo hace con un botón de cámara), combinar dos capas con una expresión de score (`a+b`) para comparar coberturas, o exportar a Excel.
+Ideas para extender: exportar la matriz como SVG/PNG (el Navigator lo hace con un botón de cámara), sumar Software al ranking de atribución (hoy solo Grupos), o exportar a Excel.
 
 ## Fuente de datos
 

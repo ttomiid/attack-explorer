@@ -122,6 +122,20 @@ export default function App() {
     [data]
   );
 
+  /** Agrega una capa ya construida a la lista y la activa. Usada al guardar el
+   *  resultado de "comparar capas" como una nueva capa de trabajo. */
+  const handleAddLayer = useCallback((layer) => {
+    setLayers((prev) => [...prev, layer]);
+    setActiveLayerIdState(layer.id);
+  }, []);
+
+  /** Agrega una capa sin activarla (no cambia la capa de trabajo actual).
+   *  Usada por el panel de atribución para generar la capa de un grupo candidato
+   *  sin perder el contexto de la capa que se está analizando. */
+  const handleAddLayerPassive = useCallback((layer) => {
+    setLayers((prev) => [...prev, layer]);
+  }, []);
+
   // --- Exploración ---
   const toggleTactic = useCallback((sn) => {
     setSelectedTactics((prev) => (prev.includes(sn) ? prev.filter((x) => x !== sn) : [...prev, sn]));
@@ -218,6 +232,8 @@ export default function App() {
             onChangeColorMode={(colorMode) => updateLayer({ ...activeLayer, colorMode })}
             onChangeGradient={(gradient) => updateLayer({ ...activeLayer, gradient })}
             onNavigateToExplore={handleNavigateToExplore}
+            onAddLayer={handleAddLayer}
+            onAddLayerPassive={handleAddLayerPassive}
             importError={importError}
           />
         ) : (
