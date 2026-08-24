@@ -1,6 +1,6 @@
 # ATT&CK Explorer
 
-<img width="2048" height="2048" alt="overview" src="https://github.com/user-attachments/assets/943565b2-c8df-47f1-8b5a-9709e84247f9" />
+<img width="248" height="248" alt="overview" src="https://github.com/user-attachments/assets/943565b2-c8df-47f1-8b5a-9709e84247f9" />
 
 Buscador y explorador con **máximo nivel de detalle** del framework [MITRE ATT&CK® Enterprise](https://attack.mitre.org/): tácticas, técnicas, sub-técnicas, mitigaciones, estrategias de detección/analíticas, grupos de amenaza (APTs) y software (malware/herramientas), con todas sus relaciones cruzadas.
 
