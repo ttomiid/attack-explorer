@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useAttackData } from "./lib/useAttackData";
+import { useD3fendMappings } from "./lib/useD3fendMappings";
 import { filterTechniques, filterNamedEntities } from "./lib/search";
 import { loadLayers, saveLayers, getActiveLayerId, setActiveLayerId } from "./lib/layerStore";
 import { createEmptyLayer, cloneLayer } from "./lib/layerModel";
@@ -34,6 +35,7 @@ const APP_MODES = [
 
 export default function App() {
   const { data, status, error } = useAttackData();
+  const { mappings: d3fendMappings, status: d3fendStatus } = useD3fendMappings();
 
   const [appMode, setAppMode] = useState("explore");
 
@@ -197,6 +199,11 @@ export default function App() {
   if (status === "loading") return <LoadingScreen />;
   if (status === "error") return <ErrorScreen message={error} />;
 
+  // superset de `data` con los mapeos D3FEND ya resueltos, para que cualquier
+  // vista de detalle (Explorar o Modelado de amenazas) pueda leer
+  // data.d3fendMappings / data.d3fendStatus sin prop-drilling aparte.
+  const enrichedData = { ...data, d3fendMappings, d3fendStatus };
+
   const stats = {
     techniques: data.techniques.filter((t) => !t.is_subtechnique).length,
     tactics: data.tactics.length,
@@ -218,7 +225,7 @@ export default function App() {
       <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-5">
         {appMode === "threat-model" ? (
           <ThreatModelView
-            data={data}
+            data={enrichedData}
             layers={layers}
             activeLayer={activeLayer}
             onSelectLayer={setActiveLayerIdState}
@@ -353,7 +360,7 @@ export default function App() {
                 <DetailPanel
                   entityType={selected?.type}
                   entity={selected?.entity}
-                  data={data}
+                  data={enrichedData}
                   onClose={() => setSelected(null)}
                   onNavigate={handleNavigate}
                   onGenerateLayer={handleGenerateLayerFromEntity}
@@ -367,7 +374,7 @@ export default function App() {
                   <DetailPanel
                     entityType={selected.type}
                     entity={selected.entity}
-                    data={data}
+                    data={enrichedData}
                     onClose={() => setSelected(null)}
                     onNavigate={handleNavigate}
                     onGenerateLayer={handleGenerateLayerFromEntity}
