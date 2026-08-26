@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const D3FEND_URL = "/data/d3fend-mappings.json";
+const D3FEND_URL = "/../public/data/d3fend-mappings.json";
 
 /**
  * Carga public/data/d3fend-mappings.json: contramedidas D3FEND sugeridas por técnica
