@@ -1,4 +1,5 @@
 import { tacticColor } from "../lib/tacticColors";
+import { d3fendTacticColor } from "../lib/d3fendTacticColors";
 import Tag from "./Tag";
 
 export default function DetailPanel({ entityType, entity, data, onClose, onNavigate, onGenerateLayer }) {
@@ -182,6 +183,8 @@ export function TechniqueDetail({ entity: t, data, onNavigate }) {
         </Section>
       )}
 
+      <D3fendSection technique={t} data={data} />
+
       {t.groups.length > 0 && (
         <Section title="Grupos que la utilizan" count={t.groups.length}>
           <div className="space-y-2">
@@ -231,6 +234,71 @@ export function TechniqueDetail({ entity: t, data, onNavigate }) {
 
       <ReferencesSection references={t.references} url={t.url} />
     </div>
+  );
+}
+
+function D3fendSection({ technique, data }) {
+  const status = data.d3fendStatus;
+  const entries = data.d3fendMappings?.get(technique.id);
+
+  if (status === "unavailable") {
+    return (
+      <Section title="Contramedidas D3FEND">
+        <p className="text-xs text-ink-500 leading-relaxed border border-dashed border-ink-700 rounded-lg p-3">
+          Todavía no se generó <code className="text-ink-400">d3fend-mappings.json</code>. Corré{" "}
+          <code className="text-ink-400">./scripts/update-d3fend-data.sh</code> (o esperá a que corra el workflow
+          de GitHub Actions) para habilitar esta sección.
+        </p>
+      </Section>
+    );
+  }
+
+  if (!entries || entries.length === 0) return null;
+
+  return (
+    <Section title="Contramedidas D3FEND" count={entries.length}>
+      <p className="text-[11px] text-ink-500 -mt-1 mb-2">
+        Técnicas defensivas de{" "}
+        <a
+          href="https://d3fend.mitre.org/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-signal-cyan hover:underline"
+        >
+          MITRE D3FEND
+        </a>{" "}
+        que actúan sobre los mismos artefactos que esta técnica ofensiva.
+      </p>
+      <div className="space-y-2">
+        {entries.map((d) => (
+          <a
+            key={d.id || d.name}
+            href={d.url || undefined}
+            target={d.url ? "_blank" : undefined}
+            rel={d.url ? "noreferrer" : undefined}
+            className="block border border-ink-800 hover:border-ink-600 rounded-lg p-3 bg-ink-900/50"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              {d.tactic && <Tag color={d3fendTacticColor(d.tactic)}>{d.tactic}</Tag>}
+              <p className="text-sm text-ink-100 font-medium">
+                {d.id && <span className="font-mono text-[10px] text-ink-500 mr-1.5">{d.id}</span>}
+                {d.name}
+              </p>
+            </div>
+            {d.definition && <p className="text-xs text-ink-400 mt-1.5">{d.definition}</p>}
+            {d.mechanisms?.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {d.mechanisms.map((m, i) => (
+                  <li key={i} className="text-[11px] font-mono text-ink-500">
+                    {d.name} {m.defends} {m.defended_artifact} — la técnica {m.attack_rel} {m.attack_artifact}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </a>
+        ))}
+      </div>
+    </Section>
   );
 }
 
