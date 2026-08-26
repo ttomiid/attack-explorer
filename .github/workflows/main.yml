@@ -1,0 +1,40 @@
+name: Keepalive
+
+# Este workflow corre 1 vez por mes (bien dentro de la ventana de 60 dias) y hace un
+# commit trivial (actualiza una fecha en un archivo de registro) solo para generar
+# actividad y mantener vivo el schedule de los demás workflows. No toca nada del
+# proyecto en sí.
+on:
+  schedule:
+    - cron: "0 4 1 * *" # el día 1 de cada mes, 04:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Actualizar registro de actividad
+        run: |
+          mkdir -p .github
+          echo "Último ping: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > .github/.keepalive
+          echo "Este archivo no tiene efecto en la app. Solo genera actividad mensual" >> .github/.keepalive
+          echo "en el repo para que GitHub no desactive los workflows con 'schedule'" >> .github/.keepalive
+          echo "tras 60 días de inactividad. Ver .github/workflows/keepalive.yml" >> .github/.keepalive
+
+      - name: Commit y push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/.keepalive
+          git commit -m "chore: keepalive ping ($(date -u +%Y-%m-%d))"
+          git push
