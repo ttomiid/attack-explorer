@@ -4,6 +4,7 @@
   <img width="248" height="248" alt="overview" src="https://github.com/user-attachments/assets/943565b2-c8df-47f1-8b5a-9709e84247f9" />
 </div>
 
+
 Buscador y explorador con **máximo nivel de detalle** del framework [MITRE ATT&CK® Enterprise](https://attack.mitre.org/): tácticas, técnicas, sub-técnicas, mitigaciones, estrategias de detección/analíticas, grupos de amenaza (APTs) y software (malware/herramientas), con todas sus relaciones cruzadas.
 
 ## Qué incluye
@@ -40,6 +41,8 @@ src/lib/
   layerGenerators.js       # generación de capas desde un Grupo/Software
   layerCombine.js           # combinación de N capas (suma/promedio/máx/mín/cantidad)
   attribution.js             # ranking de grupos por similitud de TTPs (coseno + IDF)
+  useD3fendMappings.js         # fetch de los mapeos D3FEND (degrada con gracia si falta)
+  d3fendTacticColors.js         # paleta de las 7 tácticas D3FEND
 src/components/threatModel/
   ThreatModelView.jsx   # contenedor: 3 sub-vistas (Anotar / Comparar / Atribución)
   LayerToolbar.jsx        # gestión de capas (crear/renombrar/duplicar/borrar/import/export)
@@ -65,15 +68,35 @@ npm run build     # build de producción -> dist/
 npm run preview   # sirve el build de producción
 ```
 
+## Contramedidas D3FEND
+
+Cada técnica trae además una sección **"Contramedidas D3FEND"**: las técnicas defensivas de [MITRE D3FEND](https://d3fend.mitre.org/) que actúan sobre los mismos artefactos digitales que la técnica ofensiva (ej. para *Create Process with Token* — T1134.002 — sugiere *Credential Hardening* y *Token Binding*, explicando el mecanismo concreto: "hardens Credential — la técnica copies Access Token"). Cada contramedida muestra su ID D3FEND, táctica (Model/Harden/Detect/Isolate/Deceive/Evict/Restore), definición oficial y un link directo a su página en d3fend.mitre.org.
+
+Los datos salen del mismo tipo de fuente pública que ATT&CK: el catálogo de técnicas (`d3fend.csv`) y las relaciones inferidas D3FEND↔ATT&CK (`d3fend-full-mappings.csv`) que MITRE publica en `d3fend.mitre.org`. Se procesan a `public/data/d3fend-mappings.json` con `scripts/process-d3fend-data.py`, filtrando solo relaciones con técnicas de **ATT&CK Enterprise** (mismo alcance que el resto del proyecto).
+
+Regenerar a mano:
+
+```bash
+./scripts/update-d3fend-data.sh
+```
+
+Si nunca corriste este script (o el workflow de GitHub Actions todavía no corrió), la sección simplemente no aparece — no rompe nada, solo muestra un aviso indicando cómo generarla.
+
 ## Actualizar el dataset
 
-MITRE publica nuevas versiones de ATT&CK periódicamente. Para regenerar `public/data/attack-data.json` con la última versión:
+MITRE publica nuevas versiones de ATT&CK periódicamente. Hay dos formas de regenerar `public/data/attack-data.json` con la última versión:
+
+**A mano:**
 
 ```bash
 ./scripts/update-data.sh
 ```
 
-Esto descarga `enterprise-attack.json` desde el repo oficial de MITRE y vuelve a correr `scripts/process-attack-data.py` (solo usa la librería estándar de Python, sin dependencias).
+**Automático (GitHub Actions)**: el workflow `.github/workflows/update-attack-data.yml` corre todos los lunes (y también se puede disparar a mano desde la pestaña *Actions* → *Actualizar datasets de MITRE (ATT&CK + D3FEND)* → *Run workflow*). Descarga tanto el bundle STIX de ATT&CK como los mapeos de D3FEND, regenera ambos datasets y, **solo si algo cambió**, hace commit y push a `main`. Como el workflow de deploy ya reacciona a pushes en `main`, esto deja todo el pipeline automatizado: MITRE actualiza → se regeneran los datasets → se commitean → se redeploya el sitio, sin tocar nada manualmente.
+
+Para que el commit automático funcione necesitás habilitarle permiso de escritura al `GITHUB_TOKEN` del repo: **Settings → Actions → General → Workflow permissions → "Read and write permissions"**. Sin ese cambio el workflow corre bien pero el paso de `git push` falla por permisos.
+
+Ambos caminos usan `scripts/process-attack-data.py`, que solo depende de la librería estándar de Python (sin dependencias que instalar).
 
 ## Estructura del proyecto
 
