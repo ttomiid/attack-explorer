@@ -1,6 +1,7 @@
 """
-Descarga los datos oficiales de MITRE D3FEND y genera public/data/d3fend-mappings.json:
-un diccionario {technique_id: [contramedidas D3FEND]} para el framework Enterprise.
+Descarga los datos oficiales de MITRE D3FEND y genera un archivo
+public/data/d3fend-mappings-<domain>.json por cada dominio de ATT&CK soportado
+(Enterprise y Mobile): un diccionario {technique_id: [contramedidas D3FEND]}.
 
 Fuentes (MITRE D3FEND, d3fend.mitre.org):
 - d3fend.csv               -> catálogo de técnicas D3FEND (ID, táctica, nombre, definición)
@@ -16,7 +17,25 @@ import urllib.request
 
 CATALOG_URL = "https://d3fend.mitre.org/ontologies/d3fend.csv"
 MAPPINGS_URL = "https://d3fend.mitre.org/api/ontology/inference/d3fend-full-mappings.csv"
-ENTERPRISE_ROOT = "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKEnterpriseTechnique"
+
+# Un framework_root_iri por dominio ATT&CK que soporta la app (ver src/lib/useD3fendMappings.js,
+# que pide data/d3fend-mappings-<domain>.json).
+#
+# Nota: MITRE D3FEND (a la fecha) solo publica relaciones inferidas para ATT&CK Enterprise, ICS
+# y SPARTA -- NO para ATT&CK Mobile. Confirmado corriendo scripts/list-d3fend-roots.py contra el
+# CSV real (ver github.com/ttomiid/attack-explorer, issue de d3fend-mappings-mobile.json vacío).
+# Por eso "mobile" no está en este dict: el archivo public/data/d3fend-mappings-mobile.json se
+# escribe como {} explícitamente en main() para que el fetch de la app no dé 404, y DetailPanel
+# muestra un aviso aclarando la limitación en vez de "correr el script de nuevo".
+# Si en el futuro MITRE agrega esa relación, agregar acá "mobile": "<IRI real>" alcanza.
+DOMAIN_ROOTS = {
+    "enterprise": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKEnterpriseTechnique",
+    "ics": "http://d3fend.mitre.org/ontologies/d3fend.owl#ATTACKICSTechnique",
+}
+
+# Dominios que la app espera (src/lib/useD3fendMappings.js) pero para los que D3FEND no tiene
+# datos todavía. Se generan igual como archivos vacíos {} para que el fetch no falle con 404.
+DOMAINS_WITHOUT_D3FEND_DATA = ["mobile"]
 
 HEADERS = {"User-Agent": "attack-explorer-data-pipeline (github.com/ttomiid/attack-explorer)"}
 
@@ -57,13 +76,13 @@ def build_catalog(rows):
     return catalog
 
 
-def build_mappings(rows, catalog):
+def build_mappings(rows, catalog, domain_root):
     # técnica ATT&CK -> { nombre D3FEND -> {info + set de mecanismos únicos} }
     by_technique = {}
 
     for row in rows:
-        if row.get("framework_root_iri") != ENTERPRISE_ROOT:
-            continue  # nos quedamos solo con ATT&CK Enterprise (mismo alcance que attack-data.json)
+        if row.get("framework_root_iri") != domain_root:
+            continue  # nos quedamos solo con las filas del dominio ATT&CK pedido
 
         off_tech_id = row.get("off_tech_id", "").strip()
         def_name = row.get("def_tech_label", "").strip()
@@ -137,13 +156,30 @@ def main():
     mapping_rows = fetch_csv(MAPPINGS_URL)
     print(f"  {len(mapping_rows)} filas de relaciones inferidas", file=sys.stderr)
 
-    mappings = build_mappings(mapping_rows, catalog)
-    print(f"  {len(mappings)} técnicas ATT&CK con contramedidas D3FEND asociadas", file=sys.stderr)
+    known_roots = set(DOMAIN_ROOTS.values())
+    seen_roots = {row.get("framework_root_iri") for row in mapping_rows if row.get("framework_root_iri")}
+    unrecognized = seen_roots - known_roots
+    if unrecognized:
+        print(
+            "  aviso: framework_root_iri en el CSV que no está mapeado a ningún dominio "
+            f"(no se van a incluir en ningún archivo de salida): {sorted(unrecognized)}",
+            file=sys.stderr,
+        )
 
-    with open("d3fend-mappings.json", "w", encoding="utf-8") as f:
-        json.dump(mappings, f, ensure_ascii=False)
+    for domain, root in DOMAIN_ROOTS.items():
+        mappings = build_mappings(mapping_rows, catalog, root)
+        filename = f"d3fend-mappings-{domain}.json"
+        print(f"  {len(mappings)} técnicas ATT&CK ({domain}) con contramedidas D3FEND asociadas", file=sys.stderr)
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(mappings, f, ensure_ascii=False)
+        print(f"Listo: {filename}", file=sys.stderr)
 
-    print("Listo: d3fend-mappings.json", file=sys.stderr)
+    for domain in DOMAINS_WITHOUT_D3FEND_DATA:
+        filename = f"d3fend-mappings-{domain}.json"
+        print(f"  {domain}: D3FEND no publica datos para este dominio, se escribe {filename} vacío", file=sys.stderr)
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump({}, f)
+        print(f"Listo: {filename}", file=sys.stderr)
 
 
 if __name__ == "__main__":

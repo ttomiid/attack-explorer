@@ -14,10 +14,11 @@ export const DEFAULT_GRADIENT = {
   maxValue: 100,
 };
 
-export function createEmptyLayer(name = "Nueva capa") {
+export function createEmptyLayer(name = "Nueva capa", domain = "enterprise") {
   return {
     id: uid("layer"),
     name,
+    domain, // 'enterprise' | 'mobile' | 'ics' — a qué dataset ATT&CK pertenecen sus IDs de técnica
     description: "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

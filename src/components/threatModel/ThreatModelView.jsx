@@ -48,7 +48,7 @@ export default function ThreatModelView({
     const usageList =
       entityType === "group" ? data.groupTechniques.get(entity.id) : data.softwareTechniques.get(entity.id);
     if (!usageList || usageList.length === 0) return;
-    const candidateLayer = layerFromEntityUsage({ entity, entityType, usageList });
+    const candidateLayer = layerFromEntityUsage({ entity, entityType, usageList, domain: activeLayer.domain });
     onAddLayerPassive(candidateLayer);
     setCompareSeedIds([activeLayer.id, candidateLayer.id]);
     setSubView("compare");

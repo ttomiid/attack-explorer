@@ -5,7 +5,7 @@
 </div>
 
 
-Buscador y explorador con **máximo nivel de detalle** del framework [MITRE ATT&CK® Enterprise](https://attack.mitre.org/): tácticas, técnicas, sub-técnicas, mitigaciones, estrategias de detección/analíticas, grupos de amenaza (APTs) y software (malware/herramientas), con todas sus relaciones cruzadas.
+Buscador y explorador con **máximo nivel de detalle** del framework [MITRE ATT&CK®](https://attack.mitre.org/) (dominios Enterprise, Mobile e ICS): tácticas, técnicas, sub-técnicas, mitigaciones, estrategias de detección/analíticas, grupos de amenaza (APTs) y software (malware/herramientas), con todas sus relaciones cruzadas.
 
 ## Qué incluye
 
@@ -57,7 +57,7 @@ Ideas para extender: exportar la matriz como SVG/PNG (el Navigator lo hace con u
 
 ## Fuente de datos
 
-Los datos provienen del bundle STIX 2.1 oficial que MITRE publica en [`github.com/mitre/cti`](https://github.com/mitre/cti) (dominio público / Apache 2.0). Se procesan una vez con un script de Python a un JSON compacto (`public/data/attack-data.json`, ~8 MB) que la app carga y consulta 100% en el cliente — no hay backend ni API keys.
+Los datos provienen del bundle STIX 2.1 oficial que MITRE publica en [`github.com/mitre/cti`](https://github.com/mitre/cti) (dominio público / Apache 2.0). Se procesan una vez por dominio con `scripts/process-attack-data.py` a un JSON compacto por dominio (`public/data/attack-data-{enterprise,mobile,ics}.json`) que la app carga y consulta 100% en el cliente — no hay backend ni API keys.
 
 ## Cómo correrlo
 
@@ -72,7 +72,7 @@ npm run preview   # sirve el build de producción
 
 Cada técnica trae además una sección **"Contramedidas D3FEND"**: las técnicas defensivas de [MITRE D3FEND](https://d3fend.mitre.org/) que actúan sobre los mismos artefactos digitales que la técnica ofensiva (ej. para *Create Process with Token* — T1134.002 — sugiere *Credential Hardening* y *Token Binding*, explicando el mecanismo concreto: "hardens Credential — la técnica copies Access Token"). Cada contramedida muestra su ID D3FEND, táctica (Model/Harden/Detect/Isolate/Deceive/Evict/Restore), definición oficial y un link directo a su página en d3fend.mitre.org.
 
-Los datos salen del mismo tipo de fuente pública que ATT&CK: el catálogo de técnicas (`d3fend.csv`) y las relaciones inferidas D3FEND↔ATT&CK (`d3fend-full-mappings.csv`) que MITRE publica en `d3fend.mitre.org`. Se procesan a `public/data/d3fend-mappings.json` con `scripts/process-d3fend-data.py`, filtrando solo relaciones con técnicas de **ATT&CK Enterprise** (mismo alcance que el resto del proyecto).
+Los datos salen del mismo tipo de fuente pública que ATT&CK: el catálogo de técnicas (`d3fend.csv`) y las relaciones inferidas D3FEND↔ATT&CK (`d3fend-full-mappings.csv`) que MITRE publica en `d3fend.mitre.org`. Se procesan a `public/data/d3fend-mappings-{enterprise,ics}.json` con `scripts/process-d3fend-data.py`. Nota: D3FEND no publica esta relación para ATT&CK Mobile todavía, así que `d3fend-mappings-mobile.json` se genera vacío a propósito (ver comentarios en el script).
 
 Regenerar a mano:
 

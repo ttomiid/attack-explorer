@@ -1,40 +1,40 @@
 import { useEffect, useState, useMemo } from "react";
 
-const DATA_URL = `${import.meta.env.BASE_URL}data/attack-data.json`;
-
 /**
- * Carga el dataset procesado de MITRE ATT&CK Enterprise y construye
- * índices inversos (grupo -> técnicas, software -> técnicas, mitigación -> técnicas)
- * para que la búsqueda y el panel de detalle sean instantáneos.
+ * Carga el dataset procesado de MITRE ATT&CK para el dominio indicado
+ * ('enterprise' | 'mobile' | 'ics') y construye índices inversos (grupo -> técnicas,
+ * software -> técnicas, mitigación -> técnicas) para que la búsqueda y el
+ * panel de detalle sean instantáneos. Se re-fetchea cada vez que cambia `domain`.
  */
-export function useAttackData() {
-  const [raw, setRaw] = useState(null);
-  const [status, setStatus] = useState("loading"); // loading | ready | error
-  const [error, setError] = useState(null);
+export function useAttackData(domain) {
+  // guardamos junto al resultado el dominio al que corresponde: mientras el
+  // fetch del nuevo dominio no resolvió, `state.domain !== domain` y derivamos
+  // "loading" en el render en vez de resetear el estado a mano dentro del efecto
+  const [state, setState] = useState({ domain: null, raw: null, status: "loading", error: null });
 
   useEffect(() => {
     let cancelled = false;
-    fetch(DATA_URL)
+    const dataUrl = `${import.meta.env.BASE_URL}data/attack-data-${domain}.json`;
+    fetch(dataUrl)
       .then((res) => {
         if (!res.ok) throw new Error(`No se pudo cargar el dataset (${res.status})`);
         return res.json();
       })
       .then((json) => {
-        if (!cancelled) {
-          setRaw(json);
-          setStatus("ready");
-        }
+        if (!cancelled) setState({ domain, raw: json, status: "ready", error: null });
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err.message);
-          setStatus("error");
-        }
+        if (!cancelled) setState({ domain, raw: null, status: "error", error: err.message });
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [domain]);
+
+  const resolved = state.domain === domain;
+  const status = resolved ? state.status : "loading";
+  const error = resolved ? state.error : null;
+  const raw = resolved ? state.raw : null;
 
   const indexed = useMemo(() => {
     if (!raw) return null;

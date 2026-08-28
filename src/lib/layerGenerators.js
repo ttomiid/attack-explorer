@@ -6,9 +6,9 @@ import { createEmptyLayer } from "./layerModel";
  * (si el dataset la tiene). Pensada como punto de partida rápido para
  * un modelado de amenazas: "¿qué TTPs tengo que cubrir si me preocupa este actor?".
  */
-export function layerFromEntityUsage({ entity, entityType, usageList }) {
+export function layerFromEntityUsage({ entity, entityType, usageList, domain = "enterprise" }) {
   const label = entityType === "group" ? "Grupo" : "Software";
-  const layer = createEmptyLayer(`${entity.name} — TTPs conocidos`);
+  const layer = createEmptyLayer(`${entity.name} — TTPs conocidos`, domain);
   layer.description = `Generada automáticamente a partir de las técnicas asociadas a ${label.toLowerCase()} "${entity.name}" (${entity.id}) en el dataset de MITRE ATT&CK.`;
   layer.colorMode = "manual";
 
@@ -29,9 +29,10 @@ export function layerFromEntityUsage({ entity, entityType, usageList }) {
  * Combina varias listas de uso (ej. varios grupos seleccionados) sumando
  * el score por técnica, para priorizar las técnicas compartidas entre actores.
  */
-export function layerFromMultipleEntities(entities, colorMode = "gradient") {
+export function layerFromMultipleEntities(entities, colorMode = "gradient", domain = "enterprise") {
   const layer = createEmptyLayer(
-    `Perfil combinado — ${entities.map((e) => e.entity.name).join(", ")}`
+    `Perfil combinado — ${entities.map((e) => e.entity.name).join(", ")}`,
+    domain
   );
   layer.description = `Agrega las técnicas de ${entities.length} entidades; el score indica cuántas de ellas comparten esa técnica.`;
   layer.colorMode = colorMode;

@@ -1,4 +1,10 @@
-export default function Header({ stats }) {
+const DOMAIN_LABEL = {
+  enterprise: "Enterprise Matrix",
+  mobile: "Mobile Matrix",
+  ics: "ICS Matrix",
+};
+
+export default function Header({ stats, domain }) {
   return (
     <header className="border-b border-ink-700/60 bg-ink-950/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
@@ -11,7 +17,7 @@ export default function Header({ stats }) {
               ATT&amp;CK Explorer
             </h1>
             <p className="text-[11px] font-mono uppercase tracking-widest text-ink-400 mt-1">
-              MITRE ATT&amp;CK · Enterprise Matrix
+              MITRE ATT&amp;CK · {DOMAIN_LABEL[domain] || "Enterprise Matrix"}
             </p>
           </div>
         </div>

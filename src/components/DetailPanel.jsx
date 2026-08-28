@@ -245,9 +245,19 @@ function D3fendSection({ technique, data }) {
     return (
       <Section title="Contramedidas D3FEND">
         <p className="text-xs text-ink-500 leading-relaxed border border-dashed border-ink-700 rounded-lg p-3">
-          Todavía no se generó <code className="text-ink-400">d3fend-mappings.json</code>. Corré{" "}
-          <code className="text-ink-400">./scripts/update-d3fend-data.sh</code> (o esperá a que corra el workflow
-          de GitHub Actions) para habilitar esta sección.
+          {data.domain === "mobile" ? (
+            <>
+              MITRE D3FEND todavía no publica mapeos oficiales para ATT&amp;CK Mobile (solo cubre
+              Enterprise, ICS y SPARTA). Esta sección va a quedar vacía para este dominio hasta que
+              MITRE los agregue.
+            </>
+          ) : (
+            <>
+              Todavía no se generó <code className="text-ink-400">d3fend-mappings-{data.domain}.json</code>.
+              Corré <code className="text-ink-400">./scripts/update-d3fend-data.sh</code> (o esperá a que
+              corra el workflow de GitHub Actions) para habilitar esta sección.
+            </>
+          )}
         </p>
       </Section>
     );

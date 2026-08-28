@@ -33,9 +33,26 @@ const APP_MODES = [
   { value: "threat-model", label: "Modelado de amenazas" },
 ];
 
+const DOMAIN_OPTIONS = [
+  { value: "enterprise", label: "Enterprise" },
+  { value: "mobile", label: "Mobile" },
+  { value: "ics", label: "ICS" },
+];
+
+const VALID_DOMAINS = DOMAIN_OPTIONS.map((o) => o.value);
+
+const DOMAIN_STORAGE_KEY = "attack-explorer:domain";
+
+function loadInitialDomain() {
+  if (typeof window === "undefined") return "enterprise";
+  const saved = window.localStorage.getItem(DOMAIN_STORAGE_KEY);
+  return VALID_DOMAINS.includes(saved) ? saved : "enterprise";
+}
+
 export default function App() {
-  const { data, status, error } = useAttackData();
-  const { mappings: d3fendMappings, status: d3fendStatus } = useD3fendMappings();
+  const [domain, setDomain] = useState(loadInitialDomain);
+  const { data, status, error } = useAttackData(domain);
+  const { mappings: d3fendMappings, status: d3fendStatus } = useD3fendMappings(domain);
 
   const [appMode, setAppMode] = useState("explore");
 
@@ -47,9 +64,9 @@ export default function App() {
   const [includeSub, setIncludeSub] = useState(true);
   const [selected, setSelected] = useState(null); // { type, entity }
 
-  // --- Modelado de amenazas: capas ---
+  // --- Modelado de amenazas: capas (compartidas entre dominios, cada una etiquetada) ---
   const [layers, setLayers] = useState(() => loadLayers());
-  const [activeLayerId, setActiveLayerIdState] = useState(() => getActiveLayerId() || loadLayers()[0]?.id);
+  const [activeLayerId, setActiveLayerIdState] = useState(() => getActiveLayerId(loadInitialDomain()));
   const [importError, setImportError] = useState("");
 
   useEffect(() => {
@@ -57,20 +74,47 @@ export default function App() {
   }, [layers]);
 
   useEffect(() => {
-    if (activeLayerId) setActiveLayerId(activeLayerId);
-  }, [activeLayerId]);
+    window.localStorage.setItem(DOMAIN_STORAGE_KEY, domain);
+  }, [domain]);
 
-  const activeLayer = layers.find((l) => l.id === activeLayerId) || layers[0];
+  // capas del dominio actualmente seleccionado — no tiene sentido mezclar
+  // técnicas de Enterprise con las de Mobile en el mismo selector de capas
+  const layersForDomain = useMemo(() => layers.filter((l) => l.domain === domain), [layers, domain]);
+
+  // al cambiar de dominio: recuperar la última capa activa de ESE dominio, o
+  // la primera disponible, o crear una nueva si todavía no existe ninguna
+  useEffect(() => {
+    const stillValid = layersForDomain.some((l) => l.id === activeLayerId);
+    if (stillValid) return;
+    const remembered = getActiveLayerId(domain);
+    const rememberedLayer = layersForDomain.find((l) => l.id === remembered);
+    if (rememberedLayer) {
+      setActiveLayerIdState(rememberedLayer.id);
+    } else if (layersForDomain.length > 0) {
+      setActiveLayerIdState(layersForDomain[0].id);
+    } else {
+      const fresh = createEmptyLayer("Mi primera capa", domain);
+      setLayers((prev) => [...prev, fresh]);
+      setActiveLayerIdState(fresh.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain, layersForDomain]);
+
+  useEffect(() => {
+    if (activeLayerId) setActiveLayerId(domain, activeLayerId);
+  }, [domain, activeLayerId]);
+
+  const activeLayer = layersForDomain.find((l) => l.id === activeLayerId) || layersForDomain[0];
 
   const updateLayer = useCallback((updated) => {
     setLayers((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
   }, []);
 
   const handleCreateLayer = useCallback(() => {
-    const l = createEmptyLayer(`Capa ${layers.length + 1}`);
+    const l = createEmptyLayer(`Capa ${layersForDomain.length + 1}`, domain);
     setLayers((prev) => [...prev, l]);
     setActiveLayerIdState(l.id);
-  }, [layers.length]);
+  }, [layersForDomain.length, domain]);
 
   const handleRenameLayer = useCallback(
     (name) => {
@@ -88,22 +132,27 @@ export default function App() {
   }, [activeLayer]);
 
   const handleDeleteLayer = useCallback(() => {
-    if (!activeLayer || layers.length <= 1) return;
+    if (!activeLayer || layersForDomain.length <= 1) return;
     const remaining = layers.filter((l) => l.id !== activeLayer.id);
     setLayers(remaining);
-    setActiveLayerIdState(remaining[0].id);
-  }, [activeLayer, layers]);
+    const remainingInDomain = remaining.filter((l) => l.domain === domain);
+    setActiveLayerIdState(remainingInDomain[0]?.id);
+  }, [activeLayer, layers, layersForDomain.length, domain]);
 
-  const handleImportLayer = useCallback(async (file) => {
-    try {
-      setImportError("");
-      const imported = await readLayerFile(file);
-      setLayers((prev) => [...prev, imported]);
-      setActiveLayerIdState(imported.id);
-    } catch (err) {
-      setImportError(err.message);
-    }
-  }, []);
+  const handleImportLayer = useCallback(
+    async (file) => {
+      try {
+        setImportError("");
+        const imported = await readLayerFile(file);
+        imported.domain = domain; // se importa siempre al dominio activo
+        setLayers((prev) => [...prev, imported]);
+        setActiveLayerIdState(imported.id);
+      } catch (err) {
+        setImportError(err.message);
+      }
+    },
+    [domain]
+  );
 
   const handleExportLayer = useCallback(() => {
     if (!activeLayer || !data) return;
@@ -116,12 +165,12 @@ export default function App() {
       const usageList =
         type === "group" ? data.groupTechniques.get(entity.id) : data.softwareTechniques.get(entity.id);
       if (!usageList || usageList.length === 0) return;
-      const l = layerFromEntityUsage({ entity, entityType: type, usageList });
+      const l = layerFromEntityUsage({ entity, entityType: type, usageList, domain });
       setLayers((prev) => [...prev, l]);
       setActiveLayerIdState(l.id);
       setAppMode("threat-model");
     },
-    [data]
+    [data, domain]
   );
 
   /** Agrega una capa ya construida a la lista y la activa. Usada al guardar el
@@ -144,6 +193,16 @@ export default function App() {
   }, []);
   const togglePlatform = useCallback((p) => {
     setSelectedPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  }, []);
+
+  // al cambiar de dominio, los shortnames de táctica y nombres de plataforma
+  // seleccionados dejan de tener sentido (son de OTRO dataset) — se limpian
+  const handleDomainChange = useCallback((next) => {
+    setDomain(next);
+    setSelectedTactics([]);
+    setSelectedPlatforms([]);
+    setQuery("");
+    setSelected(null);
   }, []);
 
   const filteredTechniques = useMemo(() => {
@@ -196,7 +255,7 @@ export default function App() {
     [handleNavigate]
   );
 
-  if (status === "loading") return <LoadingScreen />;
+  if (status === "loading" || !activeLayer) return <LoadingScreen />;
   if (status === "error") return <ErrorScreen message={error} />;
 
   // superset de `data` con los mapeos D3FEND ya resueltos, para que cualquier
@@ -214,11 +273,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header stats={stats} />
+      <Header stats={stats} domain={domain} />
 
       <div className="border-b border-ink-800 bg-ink-950/60">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
           <Toggle options={APP_MODES} value={appMode} onChange={setAppMode} />
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Dominio</span>
+            <Toggle options={DOMAIN_OPTIONS} value={domain} onChange={handleDomainChange} />
+          </div>
         </div>
       </div>
 
@@ -226,7 +289,7 @@ export default function App() {
         {appMode === "threat-model" ? (
           <ThreatModelView
             data={enrichedData}
-            layers={layers}
+            layers={layersForDomain}
             activeLayer={activeLayer}
             onSelectLayer={setActiveLayerIdState}
             onCreateLayer={handleCreateLayer}
@@ -388,12 +451,13 @@ export default function App() {
 
       <footer className="border-t border-ink-800 py-4">
         <p className="max-w-[1400px] mx-auto px-4 sm:px-6 font-mono text-[11px] text-ink-600">
-          Datos: MITRE ATT&amp;CK® Enterprise (
+          Datos: MITRE ATT&amp;CK® (
           <a href="https://github.com/mitre/cti" target="_blank" rel="noreferrer" className="hover:text-signal-cyan">
             github.com/mitre/cti
           </a>
-          ). ATT&amp;CK® es una marca registrada de The MITRE Corporation. Las capas de modelado de amenazas se
-          guardan localmente en tu navegador (localStorage) y son compatibles con el formato de layer JSON del{" "}
+          ), dominios Enterprise, Mobile e ICS. ATT&amp;CK® es una marca registrada de The MITRE Corporation. Las capas de
+          modelado de amenazas se guardan localmente en tu navegador (localStorage) y son compatibles con el formato
+          de layer JSON del{" "}
           <a
             href="https://mitre-attack.github.io/attack-navigator/"
             target="_blank"
