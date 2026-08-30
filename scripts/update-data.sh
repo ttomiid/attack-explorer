@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Descarga los bundles STIX de MITRE ATT&CK (Enterprise + Mobile + ICS) y regenera
 # public/data/attack-data-<domain>.json para cada uno. Requiere python3 (solo
-# librería estándar).
+# libreria estandar).
 set -euo pipefail
 cd "$(dirname "$0")"
 

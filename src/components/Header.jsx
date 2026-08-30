@@ -1,3 +1,6 @@
+import { useState } from "react";
+import AISettingsModal from "./AISettingsModal";
+
 const DOMAIN_LABEL = {
   enterprise: "Enterprise Matrix",
   mobile: "Mobile Matrix",
@@ -5,6 +8,8 @@ const DOMAIN_LABEL = {
 };
 
 export default function Header({ stats, domain }) {
+  const [showAISettings, setShowAISettings] = useState(false);
+
   return (
     <header className="border-b border-ink-700/60 bg-ink-950/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
@@ -22,16 +27,27 @@ export default function Header({ stats, domain }) {
           </div>
         </div>
 
-        {stats && (
-          <dl className="flex items-center gap-5 font-mono text-xs">
-            <Stat label="técnicas" value={stats.techniques} />
-            <Stat label="tácticas" value={stats.tactics} />
-            <Stat label="grupos" value={stats.groups} />
-            <Stat label="software" value={stats.software} />
-            <Stat label="mitigaciones" value={stats.mitigations} />
-          </dl>
-        )}
+        <div className="flex items-center gap-5">
+          {stats && (
+            <dl className="flex items-center gap-5 font-mono text-xs">
+              <Stat label="técnicas" value={stats.techniques} />
+              <Stat label="tácticas" value={stats.tactics} />
+              <Stat label="grupos" value={stats.groups} />
+              <Stat label="software" value={stats.software} />
+              <Stat label="mitigaciones" value={stats.mitigations} />
+            </dl>
+          )}
+          <button
+            onClick={() => setShowAISettings(true)}
+            title="Configurar IA local para resúmenes de mitigación D3FEND"
+            className="px-2.5 py-1.5 rounded-md border border-ink-700 hover:border-signal-cyan/60 text-ink-400 hover:text-ink-100 font-mono text-[11px] transition-colors shrink-0"
+          >
+            IA local
+          </button>
+        </div>
       </div>
+
+      {showAISettings && <AISettingsModal onClose={() => setShowAISettings(false)} />}
     </header>
   );
 }

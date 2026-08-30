@@ -144,7 +144,11 @@ export default function App() {
       try {
         setImportError("");
         const imported = await readLayerFile(file);
-        imported.domain = domain; // se importa siempre al dominio activo
+        // Si el layer.json trae un dominio reconocible (ver navigatorIO.js), respetamos ese
+        // dominio y cambiamos de pestaña si hace falta -- así las técnicas anotadas siguen
+        // apuntando al dataset correcto. Si no lo trae (ej. un layer viejo exportado antes de
+        // que existiera el campo domain), lo asumimos del dominio activo como antes.
+        if (imported.domain && imported.domain !== domain) setDomain(imported.domain);
         setLayers((prev) => [...prev, imported]);
         setActiveLayerIdState(imported.id);
       } catch (err) {
@@ -301,6 +305,9 @@ export default function App() {
             onApplyAnnotation={updateLayer}
             onChangeColorMode={(colorMode) => updateLayer({ ...activeLayer, colorMode })}
             onChangeGradient={(gradient) => updateLayer({ ...activeLayer, gradient })}
+            onChangeDescription={(description) =>
+              updateLayer({ ...activeLayer, description, updatedAt: new Date().toISOString() })
+            }
             onNavigateToExplore={handleNavigateToExplore}
             onAddLayer={handleAddLayer}
             onAddLayerPassive={handleAddLayerPassive}

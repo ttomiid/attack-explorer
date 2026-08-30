@@ -4,6 +4,16 @@
 
 import { createEmptyLayer, uid } from "./layerModel";
 
+// domain interno de esta app -> string de dominio que espera el Navigator oficial
+// (ver "domain" en LAYERFORMATv4_5.md). Si layer.domain no está en este mapa
+// (capas viejas sin el campo, de antes de que existiera multi-dominio), asumimos
+// enterprise, que era el único dominio soportado en ese momento.
+const NAVIGATOR_DOMAIN = {
+  enterprise: "enterprise-attack",
+  mobile: "mobile-attack",
+  ics: "ics-attack",
+};
+
 export function toNavigatorLayer(layer, { techniqueById, attackVersion = "17" } = {}) {
   const techniques = Object.entries(layer.annotations).map(([techniqueID, a]) => {
     const t = techniqueById?.get(techniqueID);
@@ -23,7 +33,7 @@ export function toNavigatorLayer(layer, { techniqueById, attackVersion = "17" } 
   return {
     name: layer.name,
     versions: { attack: attackVersion, navigator: "5.1.0", layer: "4.5" },
-    domain: "enterprise-attack",
+    domain: NAVIGATOR_DOMAIN[layer.domain] || "enterprise-attack",
     description: layer.description || "",
     filters: { platforms: [] },
     sorting: 0,
@@ -65,12 +75,19 @@ export function downloadLayerJSON(layer, techniqueById) {
   URL.revokeObjectURL(url);
 }
 
+const INTERNAL_DOMAIN = {
+  "enterprise-attack": "enterprise",
+  "mobile-attack": "mobile",
+  "ics-attack": "ics",
+};
+
 /**
  * Acepta tanto un layer exportado por esta app como uno real del Navigator oficial
  * (ej. descargado de la página de un grupo/software en attack.mitre.org).
  */
 export function fromNavigatorLayer(json) {
-  const layer = createEmptyLayer(json.name || "Capa importada");
+  const domain = INTERNAL_DOMAIN[json.domain] || "enterprise";
+  const layer = createEmptyLayer(json.name || "Capa importada", domain);
   layer.description = json.description || "";
   layer.colorMode = (json.techniques || []).some((t) => t.color) ? "manual" : "gradient";
 

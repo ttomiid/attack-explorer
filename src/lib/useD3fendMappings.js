@@ -8,12 +8,13 @@ import { useEffect, useState } from "react";
  * funcionando normal, solo sin esta sección — no es un error bloqueante.
  */
 export function useD3fendMappings(domain) {
-  const [mappings, setMappings] = useState(null); // Map<techniqueId, entry[]>
-  const [status, setStatus] = useState("loading"); // loading | ready | unavailable
+  // igual que useAttackData: guardamos el dominio junto al resultado y derivamos
+  // "loading" en el render (state.domain !== domain) en vez de resetear el estado
+  // a mano con un setState síncrono al inicio del efecto.
+  const [state, setState] = useState({ domain: null, mappings: null, status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
     const url = `${import.meta.env.BASE_URL}data/d3fend-mappings-${domain}.json`;
     fetch(url)
       .then((res) => {
@@ -22,18 +23,20 @@ export function useD3fendMappings(domain) {
       })
       .then((json) => {
         if (cancelled) return;
-        setMappings(new Map(Object.entries(json)));
-        setStatus("ready");
+        setState({ domain, mappings: new Map(Object.entries(json)), status: "ready" });
       })
       .catch(() => {
         if (cancelled) return;
-        setMappings(new Map());
-        setStatus("unavailable");
+        setState({ domain, mappings: new Map(), status: "unavailable" });
       });
     return () => {
       cancelled = true;
     };
   }, [domain]);
 
-  return { mappings, status };
+  const resolved = state.domain === domain;
+  return {
+    mappings: resolved ? state.mappings : null,
+    status: resolved ? state.status : "loading",
+  };
 }

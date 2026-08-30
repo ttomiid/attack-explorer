@@ -1,17 +1,21 @@
+import { forwardRef } from "react";
 import { getAnnotation } from "../../lib/layerModel";
 import { scoreToColor } from "../../lib/colorScale";
 import { useHorizontalScroll } from "../../lib/useHorizontalScroll";
 import MatrixScrollArrows from "../MatrixScrollArrows";
 
-export default function AnnotatedMatrix({
-  tactics,
-  techniquesByTactic,
-  layer,
-  selectedIds,
-  selectionMode,
-  onToggleSelect,
-  onOpenEditor,
-}) {
+const AnnotatedMatrix = forwardRef(function AnnotatedMatrix(
+  {
+    tactics,
+    techniquesByTactic,
+    layer,
+    selectedIds,
+    selectionMode,
+    onToggleSelect,
+    onOpenEditor,
+  },
+  exportRef
+) {
   const { ref, canScrollLeft, canScrollRight, scrollByPage } = useHorizontalScroll();
   return (
     <div className="relative">
@@ -22,7 +26,10 @@ export default function AnnotatedMatrix({
         onScrollRight={() => scrollByPage(1)}
       />
       <div ref={ref} className="overflow-x-auto pb-4 -mx-1 px-1">
-        <div className="flex gap-2 min-w-max">
+        {/* exportRef apunta acá (no al div con overflow-x-auto) para que la
+            captura de imagen incluya el ancho completo de la matriz, aunque
+            esté parcialmente scrolleada fuera de vista. */}
+        <div ref={exportRef} className="flex gap-2 min-w-max p-1.5">
           {tactics.map((tac) => {
           const items = techniquesByTactic.get(tac.shortname) || [];
           return (
@@ -99,4 +106,6 @@ export default function AnnotatedMatrix({
       </div>
     </div>
   );
-}
+});
+
+export default AnnotatedMatrix;

@@ -26,7 +26,7 @@ Además del explorador, el proyecto incluye un módulo de **modelado de amenazas
 - **Selección múltiple**: activá "selección múltiple", elegí varias técnicas en la matriz y aplicales una anotación en lote (por ejemplo, marcar en rojo todas las técnicas sin detección).
 - **Import/export de layer JSON 100% compatible con el Navigator oficial** (schema v4.5): podés exportar una capa hecha acá y abrirla en `mitre-attack.github.io/attack-navigator`, o importar una capa real descargada de la página de un grupo en `attack.mitre.org` (ej. el layer de TTPs de APT29) y verla en esta app.
 - **Generación automática de capas**: desde el detalle de cualquier Grupo o Software en el explorador, el botón "Generar capa de amenaza" crea una capa nueva con todas sus técnicas conocidas ya anotadas — el punto de partida típico de un ejercicio de threat-informed defense ("¿qué TTPs tengo que cubrir si me preocupa este actor?").
-- **Comparar capas (superposición)**: elegí 2 o más capas y combiná su score por técnica (suma, promedio, máximo, mínimo o cantidad de capas donde aparece) en una vista previa sobre la matriz — para ver de un vistazo qué técnicas se repiten entre, por ejemplo, tu capa de detecciones y la de un grupo, o entre varios grupos candidatos. El resultado se puede guardar como una capa nueva.
+- **Comparar capas**: elegí 2 o más capas y combiná qué técnicas quedan (unión / intersección / resta, al estilo "layer operations" del Navigator oficial) y cómo se combina el score de las que quedan (suma, promedio, máximo, mínimo o cantidad de capas donde aparece) en una vista previa sobre la matriz. Por ejemplo: *intersección* entre dos grupos candidatos para ver TTPs en común, o *resta* de "TTPs de un grupo" menos "mi capa de detección actual" para ver qué te falta cubrir. El resultado se puede guardar como una capa nueva.
 - **Atribución ("¿qué grupo puede ser?")**: tomando las técnicas anotadas y habilitadas de la capa activa como "TTPs observadas", rankea todos los grupos del dataset por similitud de coseno sobre vectores ponderados por IDF (las técnicas raras — usadas por pocos grupos — pesan más que las genéricas como "PowerShell"). Cada resultado muestra el score, las técnicas que coinciden y las que no, con un botón directo para saltar a "Comparar capas" con tu capa vs. la del grupo candidato preseleccionadas. **Importante**: es un score estadístico de solapamiento, no una atribución forense — la UI lo aclara explícitamente.
 - Las capas se guardan en `localStorage` del navegador (no hay backend); `src/lib/layerStore.js` es el único punto a tocar si más adelante querés persistirlas en un servidor propio.
 
@@ -53,7 +53,31 @@ src/components/threatModel/
   GradientBar.jsx               # leyenda del gradiente
 ```
 
-Ideas para extender: exportar la matriz como SVG/PNG (el Navigator lo hace con un botón de cámara), sumar Software al ranking de atribución (hoy solo Grupos), o exportar a Excel.
+Ideas para extender: exportar la matriz como SVG/PNG (el Navigator lo hace con un botón de cámara — todavía no lo implementamos), sumar Software al ranking de atribución (hoy solo Grupos), o exportar a Excel.
+
+## IA local para resúmenes de mitigación D3FEND
+
+Como el proyecto se sirve como sitio estático desde GitHub Pages (sin backend), no hay forma segura
+de usar una API de IA en la nube sin exponer una clave en el bundle público. En cambio, desde el botón
+**🤖 IA local** del header (o desde "Resumen de mitigación con IA local" en la sección D3FEND de
+cualquier técnica) podés generar resúmenes accionables de mitigación con un modelo que corre en tu
+propia máquina, en dos modalidades:
+
+- **Ollama**: le pega por `fetch` a un servidor [Ollama](https://ollama.com) local (`http://localhost:11434`
+  por default). Requiere Ollama instalado y corriendo con CORS habilitado para el origen de esta página
+  (`OLLAMA_ORIGINS`, el modal de configuración te da el comando exacto).
+- **En el navegador (WebLLM)**: el modelo corre 100% dentro de la pestaña vía WebGPU
+  ([`@mlc-ai/web-llm`](https://github.com/mlc-ai/web-llm)), sin instalar nada — se descarga una vez
+  (varios cientos de MB a un par de GB según el modelo) y queda cacheado. Requiere un navegador con
+  soporte WebGPU (Chrome/Edge recientes).
+
+En ambos casos funciona igual sin importar el dominio activo (Enterprise/Mobile/ICS), aunque en Mobile
+no va a tener nada para resumir porque D3FEND no publica mapeos para ese dominio (ver sección de arriba).
+El botón "insertar como comentario de la anotación" solo aparece cuando se abre desde el modelado de
+amenazas (Anotar capa → ficha completa de una técnica), no desde el explorador general.
+
+Archivo relevante: `src/lib/localAI.js` (toda la lógica de los dos proveedores vive ahí, con un prompt de
+sistema fijo que solo deja reformular/priorizar las contramedidas ya mapeadas — no inventa ninguna).
 
 ## Fuente de datos
 

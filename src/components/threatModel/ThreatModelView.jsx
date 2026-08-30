@@ -1,12 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { filterTechniques } from "../../lib/search";
 import { setAnnotation } from "../../lib/layerModel";
 import { layerFromEntityUsage } from "../../lib/layerGenerators";
 import LayerToolbar from "./LayerToolbar";
 import AnnotatedMatrix from "./AnnotatedMatrix";
+import MatrixExportMenu from "./MatrixExportMenu";
 import AnnotationEditor from "./AnnotationEditor";
 import LayerComparePanel from "./LayerComparePanel";
 import AttributionPanel from "./AttributionPanel";
+import LayerAISummaryPanel from "./LayerAISummaryPanel";
 import SearchBar from "../SearchBar";
 import Toggle from "../Toggle";
 
@@ -14,6 +16,7 @@ const SUB_VIEWS = [
   { value: "edit", label: "Anotar capa" },
   { value: "compare", label: "Comparar capas" },
   { value: "attribution", label: "¿Qué grupo puede ser?" },
+  { value: "ai-summary", label: "Resumen con IA" },
 ];
 
 export default function ThreatModelView({
@@ -33,6 +36,7 @@ export default function ThreatModelView({
   onNavigateToExplore,
   onAddLayer,
   onAddLayerPassive,
+  onChangeDescription,
   importError,
 }) {
   const [subView, setSubView] = useState("edit");
@@ -41,6 +45,7 @@ export default function ThreatModelView({
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [editingId, setEditingId] = useState(null);
   const [compareSeedIds, setCompareSeedIds] = useState(null);
+  const matrixExportRef = useRef(null);
 
   /** Genera la capa de TTPs conocidos de un grupo/software candidato (sin activarla),
    *  y salta a "Comparar capas" con la capa observada + la del candidato preseleccionadas. */
@@ -142,6 +147,10 @@ export default function ThreatModelView({
         />
       )}
 
+      {subView === "ai-summary" && (
+        <LayerAISummaryPanel layer={activeLayer} data={data} onSetLayerDescription={onChangeDescription} />
+      )}
+
       {subView === "edit" && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
           <div className="min-w-0">
@@ -162,6 +171,7 @@ export default function ThreatModelView({
                     setEditingId(null);
                   }}
                 />
+                <MatrixExportMenu targetRef={matrixExportRef} layerName={activeLayer?.name} />
               </div>
               {selectionMode && selectedIds.size > 0 && (
                 <p className="font-mono text-xs text-signal-cyan">
@@ -173,6 +183,7 @@ export default function ThreatModelView({
             </div>
 
             <AnnotatedMatrix
+              ref={matrixExportRef}
               tactics={data.tactics}
               techniquesByTactic={techniquesByTactic}
               layer={activeLayer}

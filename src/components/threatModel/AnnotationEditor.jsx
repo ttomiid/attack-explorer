@@ -108,7 +108,15 @@ export default function AnnotationEditor({
 
       {single && tab === "detail" ? (
         <div className="mt-4 -mx-5 px-5 border-t border-ink-800 pt-4">
-          <TechniqueDetail entity={single} data={data} onNavigate={onNavigateToExplore} />
+          <TechniqueDetail
+            entity={single}
+            data={data}
+            onNavigate={onNavigateToExplore}
+            onInsertToLayerComment={(text) => {
+              setComment((prev) => (prev ? `${prev}\n\n${text}` : text));
+              setTab("annotate");
+            }}
+          />
         </div>
       ) : (
         <AnnotateForm

@@ -77,7 +77,7 @@ def build_catalog(rows):
 
 
 def build_mappings(rows, catalog, domain_root):
-    # técnica ATT&CK -> { nombre D3FEND -> {info + set de mecanismos únicos} }
+    # tecnica ATT&CK -> { nombre D3FEND -> {info + set de mecanismos únicos} }
     by_technique = {}
 
     for row in rows:

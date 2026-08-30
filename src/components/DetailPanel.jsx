@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { tacticColor } from "../lib/tacticColors";
 import { d3fendTacticColor } from "../lib/d3fendTacticColors";
+import { loadAISettings, isAIConfigured, generateMitigationSummary } from "../lib/localAI";
+import AISettingsModal from "./AISettingsModal";
 import Tag from "./Tag";
 
 export default function DetailPanel({ entityType, entity, data, onClose, onNavigate, onGenerateLayer }) {
@@ -60,7 +63,7 @@ function Section({ title, children, count }) {
   );
 }
 
-export function TechniqueDetail({ entity: t, data, onNavigate }) {
+export function TechniqueDetail({ entity: t, data, onNavigate, onInsertToLayerComment }) {
   const parent = t.parent_id ? data.techniqueById.get(t.parent_id) : null;
   const subs = t.subtechniques.map((id) => data.techniqueById.get(id)).filter(Boolean);
 
@@ -183,7 +186,7 @@ export function TechniqueDetail({ entity: t, data, onNavigate }) {
         </Section>
       )}
 
-      <D3fendSection technique={t} data={data} />
+      <D3fendSection technique={t} data={data} onInsertToComment={onInsertToLayerComment} />
 
       {t.groups.length > 0 && (
         <Section title="Grupos que la utilizan" count={t.groups.length}>
@@ -237,7 +240,7 @@ export function TechniqueDetail({ entity: t, data, onNavigate }) {
   );
 }
 
-function D3fendSection({ technique, data }) {
+function D3fendSection({ technique, data, onInsertToComment }) {
   const status = data.d3fendStatus;
   const entries = data.d3fendMappings?.get(technique.id);
 
@@ -308,7 +311,107 @@ function D3fendSection({ technique, data }) {
           </a>
         ))}
       </div>
+      <AIMitigationSummary technique={technique} entries={entries} onInsertToComment={onInsertToComment} />
     </Section>
+  );
+}
+
+function AIMitigationSummary({ technique, entries, onInsertToComment }) {
+  const [settings, setSettings] = useState(loadAISettings);
+  const [state, setState] = useState("idle"); // idle | loading | done | error
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [inserted, setInserted] = useState(false);
+
+  const configured = isAIConfigured(settings);
+
+  const generate = async () => {
+    setState("loading");
+    setError("");
+    setProgress("");
+    setInserted(false);
+    try {
+      const result = await generateMitigationSummary({
+        technique,
+        d3fendEntries: entries,
+        settings,
+        onProgress: (p) => setProgress(p?.text || ""),
+      });
+      setText(result);
+      setState("done");
+    } catch (err) {
+      setError(err.message);
+      setState("error");
+    }
+  };
+
+  return (
+    <div className="mt-3 border border-dashed border-ink-700 rounded-lg p-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-ink-500">
+          Resumen de mitigación con IA local
+        </p>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="font-mono text-[11px] text-ink-500 hover:text-ink-200"
+        >
+          configurar
+        </button>
+      </div>
+
+      {!configured ? (
+        <p className="text-xs text-ink-500 mt-2">
+          No configuraste ninguna IA local todavía.{" "}
+          <button onClick={() => setShowSettings(true)} className="text-signal-cyan hover:underline">
+            Configurar ahora
+          </button>
+        </p>
+      ) : (
+        <>
+          {state !== "loading" && (
+            <button
+              onClick={generate}
+              className="mt-2 px-3 py-1.5 rounded-md border border-ink-700 hover:border-signal-cyan/60 text-ink-200 font-mono text-[11px] transition-colors"
+            >
+              {state === "done" ? "regenerar" : "generar resumen"}
+            </button>
+          )}
+          {state === "loading" && (
+            <p className="text-xs text-ink-400 mt-2 font-mono">
+              generando{progress ? ` — ${progress}` : "…"}
+            </p>
+          )}
+          {state === "error" && <p className="text-xs text-signal-red mt-2 leading-relaxed">{error}</p>}
+          {state === "done" && (
+            <div className="mt-2">
+              <p className="text-sm text-ink-200 leading-relaxed whitespace-pre-line">{text}</p>
+              {onInsertToComment && (
+                <button
+                  onClick={() => {
+                    onInsertToComment(text);
+                    setInserted(true);
+                  }}
+                  className="mt-2 px-3 py-1.5 rounded-md bg-signal-cyan/90 hover:bg-signal-cyan text-ink-950 font-mono text-[11px] font-semibold transition-colors"
+                >
+                  {inserted ? "insertado en el comentario ✓" : "insertar como comentario de la anotación"}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {showSettings && (
+        <AISettingsModal
+          onClose={() => {
+            setShowSettings(false);
+            setSettings(loadAISettings());
+          }}
+        />
+      )}
+    </div>
   );
 }
 
