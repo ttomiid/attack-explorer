@@ -1,0 +1,4 @@
+Último ping: 2026-09-01T09:13:37Z
+Este archivo no tiene efecto en la app. Solo genera actividad mensual
+en el repo para que GitHub no desactive los workflows con 'schedule'
+tras 60 días de inactividad. Ver .github/workflows/keepalive.yml
